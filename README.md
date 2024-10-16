@@ -34,10 +34,11 @@ Features added:
 
 Features that may or may not be added in the future:
 
+- [ ] Search for songs in the playlist.
+- [ ] Manual addition of songs to the playlist.
+- [ ] Multiple playlists.
 - [ ] Automatically add songs to a YouTube Music playlist.
   - I originally started working on this, but it seems too complicated to implement. I might revisit this in the future.
-- [ ] Multiple playlists.
-- [ ] Manual addition of songs to the playlist.
 
 ## Development
 
