@@ -38,3 +38,17 @@ Features that may or may not be added in the future:
   - I originally started working on this, but it seems too complicated to implement. I might revisit this in the future.
 - [ ] Multiple playlists.
 - [ ] Manual addition of songs to the playlist.
+
+## Development
+
+1. Clone the repository.
+2. Run `npm install` to install the dependencies.
+3. Run `npm run watch` to start the development server.
+4. Open the Chrome browser and navigate to `chrome://extensions/`.
+5. Enable the `Developer mode` toggle.
+6. Click on the `Load unpacked` button and select the `dist` folder.
+7. Run `npm run build` to build the extension.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
