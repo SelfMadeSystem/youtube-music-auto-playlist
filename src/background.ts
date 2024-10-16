@@ -7,6 +7,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 function addToLocalPlaylist(videoId: string, title: string, author: string) {
   getLocalPlaylist((playlist) => {
+    if (playlist.some((item) => item.videoId === videoId)) {
+      console.log("Video already in local playlist:", videoId);
+      return;
+    }
     playlist.push({ videoId, title, author });
     chrome.storage.local.set({ localPlaylist: playlist }, () => {
       console.log("Video added to local playlist:", videoId);

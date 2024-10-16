@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "YouTube Music Auto Playlist",
   "description": "Automatically adds fully watched YouTube Music videos to a playlist",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "action": {
     "default_icon": {
       "16": "icon.png"
