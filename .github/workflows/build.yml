@@ -13,7 +13,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x]
+        node-version: [22.x]
 
     steps:
       - uses: actions/checkout@v4
@@ -24,11 +24,11 @@ jobs:
       - run: npm ci
       - run: npm run build --if-present
       - run: npm test
-      - name: Upload build artifact
+      - name: Upload dist artifact
         uses: actions/upload-artifact@v3
         with:
-          name: build
-          path: build/
+          name: dist
+          path: dist/
 
   prerelease:
     if: github.event_name != 'workflow_dispatch'
@@ -36,15 +36,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Download build artifact
+      - name: Download dist artifact
         uses: actions/download-artifact@v3
         with:
-          name: build
-          path: build/
-      - name: Create a .zip file of the build directory
+          name: dist
+          path: dist/
+      - name: Create a .zip file of the dist directory
         run: |
           mkdir release
-          zip -r release/build.zip build/
+          zip -r release/dist.zip dist/
       - name: Create Prerelease
         id: create_prerelease
         uses: actions/create-release@v1
@@ -61,8 +61,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_prerelease.outputs.upload_url }}
-          asset_path: ./release/build.zip
-          asset_name: build.zip
+          asset_path: ./release/dist.zip
+          asset_name: dist.zip
           asset_content_type: application/zip
 
   full_release:
@@ -71,20 +71,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Download build artifact
+      - name: Download dist artifact
         uses: actions/download-artifact@v3
         with:
-          name: build
-          path: build/
+          name: dist
+          path: dist/
       - name: Get version from package.json
         id: get_version
         run: |
           VERSION=$(jq -r '.version' package.json)
           echo "::set-output name=version::$VERSION"
-      - name: Create a .zip file of the build directory
+      - name: Create a .zip file of the dist directory
         run: |
           mkdir release
-          zip -r release/build.zip build/
+          zip -r release/dist.zip dist/
       - name: Create Full Release
         id: create_full_release
         uses: actions/create-release@v1
@@ -101,6 +101,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_full_release.outputs.upload_url }}
-          asset_path: ./release/build.zip
-          asset_name: build.zip
+          asset_path: ./release/dist.zip
+          asset_name: dist.zip
           asset_content_type: application/zip
