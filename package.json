@@ -1,6 +1,6 @@
 {
   "name": "youtube-music-auto-playlist",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Automatically adds fully watched YouTube Music videos to a playlist",
   "main": "index.js",
   "scripts": {
