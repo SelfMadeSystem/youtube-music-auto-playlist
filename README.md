@@ -1,5 +1,7 @@
 # YouTube Music Auto Playlist Chrome Extension
 
+[![build](https://github.com/SelfMadeSystem/youtube-music-auto-playlist/actions/workflows/build.yml/badge.svg)](https://github.com/SelfMadeSystem/youtube-music-auto-playlist/actions/workflows/build.yml)
+
 This is a Chrome extension that automatically adds fully listened songs to a local playlist. You can edit the entries and export them to a `.csv` file.
 
 ## Installation
