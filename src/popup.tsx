@@ -4,6 +4,17 @@ import "./popup.css";
 import "./tailwind.css";
 
 /**
+ * Normalizes a string by removing all whitespace, periods, dashes, and apostrophes,
+ * converting it to lowercase, and removing all accents and (eg `ﬁ` -> `fi`)
+ */
+export function normalizeString(s: string): string {
+  return s
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036F.\-'\s]/g, "")
+    .toLowerCase();
+}
+
+/**
  * Escape a string for CSV.
  *
  * If the string contains a comma, newline, or double quote, it will be
@@ -31,6 +42,24 @@ const Popup = () => {
   const [editingVideoId, setEditingVideoId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState<string>("");
   const [newAuthor, setNewAuthor] = useState<string>("");
+  const [filter, setFilter] = useState<string>("");
+  const [filteredPlaylist, setFilteredPlaylist] = useState<PlaylistType[]>([]);
+
+  function filterPlaylist(newFilter?: string) {
+    if (newFilter !== undefined) {
+      setFilter(newFilter);
+    }
+    const normalizedFilter = normalizeString(newFilter ?? filter);
+    setFilteredPlaylist(
+      playlist.filter(
+        (item) =>
+          normalizeString(item.title).includes(normalizedFilter) ||
+          normalizeString(item.author).includes(normalizedFilter)
+      )
+    );
+  }
+
+  useEffect(filterPlaylist, [playlist]);
 
   useEffect(() => {
     chrome.storage.local.get(["localPlaylist"]).then(((result: {
@@ -92,24 +121,39 @@ const Popup = () => {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold">Playlist</h1>
-      <button
-        className="mt-4 bg-blue-700 rounded-md p-2 text-white"
-        onClick={exportToCSV}
-      >
-        Export to CSV
-      </button>
+      <div className="flex flex-row">
+        <h1 className="text-2xl font-bold">Playlist</h1>
+        <div className="ml-auto">Songs: {playlist.length}</div>
+      </div>
+      <div className="flex flex-row gap-2">
+        <button
+          className="mt-4 bg-blue-700 rounded-md p-2 text-white w-max shrink-0"
+          onClick={exportToCSV}
+        >
+          Export to CSV
+        </button>
+        <input
+          type="text"
+          value={filter}
+          onChange={(e) => filterPlaylist(e.target.value)}
+          placeholder="Filter"
+          className="mt-4 w-full p-2 border-black border"
+        />
+      </div>
       <ul className="mt-4">
-        {playlist.map((item) => {
+        {filteredPlaylist.map((item) => {
           const href = `https://music.youtube.com/watch?v=${item.videoId}`;
           return (
             <li key={item.videoId} className="flex items-center space-x-2">
-              <a href={href} target="_blank" rel="noreferrer">
+              <a href={href} target="_blank" rel="noreferrer" className="relative">
                 <img
                   src={`https://img.youtube.com/vi/${item.videoId}/default.jpg`}
                   alt={item.title}
-                  className="w-16 h-12"
+                  className="w-16 h-12 relative"
                 />
+                <div className="hover-overlay">
+                  Open
+                </div>
               </a>
               <div className="flex-1">
                 {editingVideoId === item.videoId ? (

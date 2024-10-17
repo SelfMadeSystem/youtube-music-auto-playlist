@@ -6,3 +6,27 @@ body {
   overflow-y: auto;
   background-color: #f0f0f0;
 }
+
+.hover-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  color: white;
+  transition: opacity 0.3s;
+  isolation: isolate;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hover-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: -1;
+}
+
+a:hover .hover-overlay {
+  opacity: 1;
+}
