@@ -44,6 +44,9 @@ const Popup = () => {
   const [newAuthor, setNewAuthor] = useState<string>("");
   const [filter, setFilter] = useState<string>("");
   const [filteredPlaylist, setFilteredPlaylist] = useState<PlaylistType[]>([]);
+  const [sortKey, setSortKey] = useState<keyof PlaylistType | undefined>(
+    undefined
+  );
 
   function filterPlaylist(newFilter?: string) {
     if (newFilter !== undefined) {
@@ -51,15 +54,40 @@ const Popup = () => {
     }
     const normalizedFilter = normalizeString(newFilter ?? filter);
     setFilteredPlaylist(
-      playlist.filter(
-        (item) =>
-          normalizeString(item.title).includes(normalizedFilter) ||
-          normalizeString(item.author).includes(normalizedFilter)
+      sortBy(
+        playlist.filter(
+          (item) =>
+            normalizeString(item.title).includes(normalizedFilter) ||
+            normalizeString(item.author).includes(normalizedFilter)
+        )
       )
     );
   }
 
-  useEffect(filterPlaylist, [playlist]);
+  function sortBy(
+    playlist: PlaylistType[],
+    key: keyof PlaylistType | undefined = sortKey
+  ): PlaylistType[] {
+    if (key === undefined) {
+      return playlist;
+    }
+    const sorted = [...playlist].sort((a, b) => {
+      const ak = a[key];
+      const bk = b[key];
+      if (ak === undefined && bk === undefined) return 0;
+      if (ak === undefined) return 1;
+      if (bk === undefined) return -1;
+      if (typeof ak === "string" && typeof bk === "string") {
+        return ak.localeCompare(bk);
+      }
+      if (ak < bk) return -1;
+      if (ak > bk) return 1;
+      return 0;
+    });
+    return sorted;
+  }
+
+  useEffect(filterPlaylist, [playlist, sortKey]);
 
   useEffect(() => {
     chrome.storage.local.get(["localPlaylist"]).then(((result: {
@@ -120,40 +148,60 @@ const Popup = () => {
   };
 
   return (
-    <div className="p-4">
-      <div className="flex flex-row">
-        <h1 className="text-2xl font-bold">Playlist</h1>
-        <div className="ml-auto">Songs: {playlist.length}</div>
+    <div className="max-h-[600px] flex flex-col overflow-hidden">
+      <div className="sticky top-0 p-4 bg-slate-300 z-10 shadow-xl border-b-black border-b-2">
+        <div className="flex flex-row">
+          <h1 className="text-2xl font-bold">Playlist</h1>
+          <label htmlFor="sortBy my-auto">
+            <span className="ml-4">Sort by:</span>
+            <select
+              id="sortBy"
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as keyof PlaylistType)}
+              className="ml-2"
+            >
+              <option value="">None</option>
+              <option value="title">Title</option>
+              <option value="author">Author</option>
+              <option value="firstWatched">First Watched</option>
+              <option value="lastWatched">Last Watched</option>
+            </select>
+          </label>
+          <div className="ml-auto">Songs: {playlist.length}</div>
+        </div>
+        <div className="flex flex-row gap-2">
+          <button
+            className="mt-4 bg-blue-700 rounded-md p-2 text-white w-max shrink-0"
+            onClick={exportToCSV}
+          >
+            Export to CSV
+          </button>
+          <input
+            type="text"
+            value={filter}
+            onChange={(e) => filterPlaylist(e.target.value)}
+            placeholder="Filter"
+            className="mt-4 w-full p-2 border-black border"
+          />
+        </div>
       </div>
-      <div className="flex flex-row gap-2">
-        <button
-          className="mt-4 bg-blue-700 rounded-md p-2 text-white w-max shrink-0"
-          onClick={exportToCSV}
-        >
-          Export to CSV
-        </button>
-        <input
-          type="text"
-          value={filter}
-          onChange={(e) => filterPlaylist(e.target.value)}
-          placeholder="Filter"
-          className="mt-4 w-full p-2 border-black border"
-        />
-      </div>
-      <ul className="mt-4">
+      <div className="p-4 overflow-auto">
         {filteredPlaylist.map((item) => {
           const href = `https://music.youtube.com/watch?v=${item.videoId}`;
           return (
-            <li key={item.videoId} className="flex items-center space-x-2">
-              <a href={href} target="_blank" rel="noreferrer" className="relative">
+            <div key={item.videoId} className="flex items-center space-x-2">
+              <a
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                className="relative"
+              >
                 <img
                   src={`https://img.youtube.com/vi/${item.videoId}/default.jpg`}
                   alt={item.title}
                   className="w-16 h-12 relative"
                 />
-                <div className="hover-overlay">
-                  Open
-                </div>
+                <div className="hover-overlay">Open</div>
               </a>
               <div className="flex-1">
                 {editingVideoId === item.videoId ? (
@@ -188,14 +236,48 @@ const Popup = () => {
                       {item.title}
                     </a>
                     <p className="text-sm">{item.author}</p>
-                    <button
-                      className="ml-auto w-full bg-gray-300 rounded-md p-2 text-black"
-                      onClick={() =>
-                        startEditing(item.videoId, item.title, item.author)
-                      }
-                    >
-                      Edit
-                    </button>
+                    <div className="flex flex-row justify-between">
+                      <button
+                        className="w-fit bg-gray-300 rounded-md p-2 text-black"
+                        onClick={() =>
+                          startEditing(item.videoId, item.title, item.author)
+                        }
+                      >
+                        Edit
+                      </button>
+                      <div className="flex flex-col">
+                        <p className="text-sm">
+                          Last:{" "}
+                          {item.lastWatched
+                            ? new Date(item.lastWatched).toLocaleString(
+                                undefined,
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "numeric",
+                                  minute: "numeric",
+                                }
+                              )
+                            : "Unknown"}
+                        </p>
+                        <p className="text-sm">
+                          First:{" "}
+                          {item.firstWatched
+                            ? new Date(item.firstWatched).toLocaleString(
+                                undefined,
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "numeric",
+                                  minute: "numeric",
+                                }
+                              )
+                            : "Unknown"}
+                        </p>
+                      </div>
+                    </div>
                   </>
                 )}
               </div>
@@ -205,10 +287,10 @@ const Popup = () => {
               >
                 Remove
               </button>
-            </li>
+            </div>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
 };
