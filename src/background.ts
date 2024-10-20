@@ -21,8 +21,13 @@ function addToLocalPlaylist(videoId: string, title: string, author: string) {
     }
     const updated = playlist.filter((item) => item.videoId !== videoId);
     updated.push(current);
-    chrome.storage.local.set({ localPlaylist: playlist }, () => {
-      console.log("Video added to local playlist:", videoId);
+    chrome.storage.local.set({ localPlaylist: updated }, () => {
+      console.log(
+        "Video added to local playlist:",
+        videoId,
+        current,
+        updated,
+      );
     });
   });
 }
