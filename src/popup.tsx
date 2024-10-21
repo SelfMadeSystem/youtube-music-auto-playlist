@@ -1,3 +1,4 @@
+import { AnimatePresence, Reorder } from "framer-motion";
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./popup.css";
@@ -47,6 +48,7 @@ const Popup = () => {
   const [sortKey, setSortKey] = useState<keyof PlaylistType | undefined>(
     undefined
   );
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   function filterPlaylist(newFilter?: string) {
     if (newFilter !== undefined) {
@@ -77,17 +79,20 @@ const Popup = () => {
       if (ak === undefined && bk === undefined) return 0;
       if (ak === undefined) return 1;
       if (bk === undefined) return -1;
+      let r = 0;
       if (typeof ak === "string" && typeof bk === "string") {
-        return ak.localeCompare(bk);
+        r = ak.localeCompare(bk);
+      } else {
+        if (ak < bk) r = -1;
+        if (ak > bk) r = 1;
       }
-      if (ak < bk) return -1;
-      if (ak > bk) return 1;
-      return 0;
+      if (sortOrder === "desc") r *= -1;
+      return r;
     });
     return sorted;
   }
 
-  useEffect(filterPlaylist, [playlist, sortKey]);
+  useEffect(filterPlaylist, [playlist, sortKey, sortOrder]);
 
   useEffect(() => {
     chrome.storage.local.get(["localPlaylist"]).then(((result: {
@@ -152,21 +157,33 @@ const Popup = () => {
       <div className="sticky top-0 p-4 bg-slate-300 z-10 shadow-xl border-b-black border-b-2">
         <div className="flex flex-row">
           <h1 className="text-2xl font-bold">Playlist</h1>
-          <label htmlFor="sortBy my-auto">
-            <span className="ml-4">Sort by:</span>
-            <select
-              id="sortBy"
-              value={sortKey}
-              onChange={(e) => setSortKey(e.target.value as keyof PlaylistType)}
-              className="ml-2"
+          <div className="flex flex-row items-center">
+            <label htmlFor="sortBy my-auto">
+              <span className="ml-4">Sort by:</span>
+              <select
+                id="sortBy"
+                value={sortKey}
+                onChange={(e) =>
+                  setSortKey(e.target.value as keyof PlaylistType)
+                }
+                className="ml-2"
+              >
+                <option value="">None</option>
+                <option value="lastWatched">Last Watched</option>
+                <option value="firstWatched">First Watched</option>
+                <option value="title">Title</option>
+                <option value="author">Author</option>
+              </select>
+            </label>
+            <button
+              className={`w-8 h-8 ml-2 transition-transform ${sortOrder === "asc" ? "rotate-180" : ""}`}
+              onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
             >
-              <option value="">None</option>
-              <option value="title">Title</option>
-              <option value="author">Author</option>
-              <option value="firstWatched">First Watched</option>
-              <option value="lastWatched">Last Watched</option>
-            </select>
-          </label>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" />
+              </svg>
+            </button>
+          </div>
           <div className="ml-auto">Songs: {playlist.length}</div>
         </div>
         <div className="flex flex-row gap-2">
@@ -186,110 +203,138 @@ const Popup = () => {
         </div>
       </div>
       <div className="p-4 overflow-auto">
-        {filteredPlaylist.map((item) => {
-          const href = `https://music.youtube.com/watch?v=${item.videoId}`;
-          return (
-            <div key={item.videoId} className="flex items-center space-x-2">
-              <a
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                className="relative"
-              >
-                <img
-                  src={`https://img.youtube.com/vi/${item.videoId}/default.jpg`}
-                  alt={item.title}
-                  className="w-16 h-12 relative"
-                />
-                <div className="hover-overlay">Open</div>
-              </a>
-              <div className="flex-1">
-                {editingVideoId === item.videoId ? (
-                  <>
-                    <input
-                      type="text"
-                      value={newTitle}
-                      onChange={(e) => setNewTitle(e.target.value)}
-                      className="font-sm w-full border-black border"
+        <Reorder.Group
+          axis="y"
+          values={filteredPlaylist}
+          onReorder={setFilteredPlaylist}
+        >
+          <AnimatePresence>
+            {filteredPlaylist.map((item) => {
+              const href = `https://music.youtube.com/watch?v=${item.videoId}`;
+              return (
+                <Reorder.Item
+                  key={item.videoId}
+                  value={item}
+                  className="flex items-center space-x-2"
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  transition={{
+                    scale: { duration: 0.2, ease: "easeInOut" },
+                    opacity: { duration: 0.2, ease: "easeInOut" },
+                    type: "spring",
+                    stiffness: 150,
+                    damping: 17,
+                  }}
+                  drag={false}
+                >
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="relative"
+                  >
+                    <img
+                      src={`https://img.youtube.com/vi/${item.videoId}/default.jpg`}
+                      alt={item.title}
+                      className="w-16 h-12 relative"
                     />
-                    <input
-                      type="text"
-                      value={newAuthor}
-                      onChange={(e) => setNewAuthor(e.target.value)}
-                      className="font-sm w-full border-black border"
-                    />
-                    <button
-                      className="ml-auto bg-green-700 rounded-md p-2 text-white"
-                      onClick={() => saveChanges(item.videoId)}
-                    >
-                      Save
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <a
-                      className="font-bold text-blue-700 hover:underline"
-                      href={href}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {item.title}
-                    </a>
-                    <p className="text-sm">{item.author}</p>
-                    <div className="flex flex-row justify-between">
-                      <button
-                        className="w-fit bg-gray-300 rounded-md p-2 text-black"
-                        onClick={() =>
-                          startEditing(item.videoId, item.title, item.author)
-                        }
-                      >
-                        Edit
-                      </button>
-                      <div className="flex flex-col">
-                        <p className="text-sm">
-                          Last:{" "}
-                          {item.lastWatched
-                            ? new Date(item.lastWatched).toLocaleString(
-                                undefined,
-                                {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "numeric",
-                                  minute: "numeric",
-                                }
+                    <div className="hover-overlay">Open</div>
+                  </a>
+                  <div className="flex-1">
+                    {editingVideoId === item.videoId ? (
+                      <>
+                        <input
+                          type="text"
+                          value={newTitle}
+                          onChange={(e) => setNewTitle(e.target.value)}
+                          className="font-sm w-full border-black border"
+                        />
+                        <input
+                          type="text"
+                          value={newAuthor}
+                          onChange={(e) => setNewAuthor(e.target.value)}
+                          className="font-sm w-full border-black border"
+                        />
+                        <button
+                          className="ml-auto bg-green-700 rounded-md p-2 text-white"
+                          onClick={() => saveChanges(item.videoId)}
+                        >
+                          Save
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <a
+                          className="font-bold text-blue-700 hover:underline"
+                          href={href}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={item.videoId}
+                        >
+                          {item.title}
+                        </a>
+                        <p className="text-sm">{item.author}</p>
+                        <div className="flex flex-row justify-between">
+                          <button
+                            className="w-fit bg-gray-300 rounded-md p-2 text-black"
+                            onClick={() =>
+                              startEditing(
+                                item.videoId,
+                                item.title,
+                                item.author
                               )
-                            : "Unknown"}
-                        </p>
-                        <p className="text-sm">
-                          First:{" "}
-                          {item.firstWatched
-                            ? new Date(item.firstWatched).toLocaleString(
-                                undefined,
-                                {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "numeric",
-                                  minute: "numeric",
-                                }
-                              )
-                            : "Unknown"}
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-              <button
-                className="ml-auto bg-red-700 rounded-md p-2 text-white"
-                onClick={() => removeVideo(item.videoId)}
-              >
-                Remove
-              </button>
-            </div>
-          );
-        })}
+                            }
+                          >
+                            Edit
+                          </button>
+                          <div className="flex flex-col">
+                            <p className="text-sm">
+                              Last:{" "}
+                              {item.lastWatched
+                                ? new Date(item.lastWatched).toLocaleString(
+                                    undefined,
+                                    {
+                                      year: "numeric",
+                                      month: "short",
+                                      day: "numeric",
+                                      hour: "numeric",
+                                      minute: "numeric",
+                                    }
+                                  )
+                                : "Unknown"}
+                            </p>
+                            <p className="text-sm">
+                              First:{" "}
+                              {item.firstWatched
+                                ? new Date(item.firstWatched).toLocaleString(
+                                    undefined,
+                                    {
+                                      year: "numeric",
+                                      month: "short",
+                                      day: "numeric",
+                                      hour: "numeric",
+                                      minute: "numeric",
+                                    }
+                                  )
+                                : "Unknown"}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <button
+                    className="ml-auto bg-red-700 rounded-md p-2 text-white"
+                    onClick={() => removeVideo(item.videoId)}
+                  >
+                    Remove
+                  </button>
+                </Reorder.Item>
+              );
+            })}
+          </AnimatePresence>
+        </Reorder.Group>
       </div>
     </div>
   );
