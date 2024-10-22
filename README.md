@@ -31,11 +31,13 @@ Features added:
 - [x] Automatically adds fully listened songs to a local playlist.
 - [x] Edit the entries in the popup.
 - [x] Export the entries to a `.csv` file.
+- [x] Search for songs in the playlist.
+- [x] Delete songs from the playlist.
 
 Features that may or may not be added in the future:
 
-- [ ] Search for songs in the playlist.
 - [ ] Manual addition of songs to the playlist.
+- [ ] Treat certains songs as the same song (e.g. same song uploaded by different users).
 - [ ] Multiple playlists.
 - [ ] Automatically add songs to a YouTube Music playlist.
   - I originally started working on this, but it seems too complicated to implement. I might revisit this in the future.
