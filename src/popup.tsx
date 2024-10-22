@@ -46,9 +46,9 @@ const Popup = () => {
   const [filter, setFilter] = useState<string>("");
   const [filteredPlaylist, setFilteredPlaylist] = useState<PlaylistType[]>([]);
   const [sortKey, setSortKey] = useState<keyof PlaylistType | undefined>(
-    undefined
+    "firstWatched"
   );
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   function filterPlaylist(newFilter?: string) {
     if (newFilter !== undefined) {
@@ -168,7 +168,6 @@ const Popup = () => {
                 }
                 className="ml-2"
               >
-                <option value="">None</option>
                 <option value="lastWatched">Last Watched</option>
                 <option value="firstWatched">First Watched</option>
                 <option value="title">Title</option>
