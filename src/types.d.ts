@@ -2,6 +2,7 @@
 
 type PlaylistType = {
   videoId: string;
+  duplicates?: string[];
   title: string;
   author: string;
   firstWatched?: number;

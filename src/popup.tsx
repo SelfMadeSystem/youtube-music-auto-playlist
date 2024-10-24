@@ -41,6 +41,7 @@ const toCSV = (playlist: PlaylistType[]) => {
 const Popup = () => {
   const [playlist, setPlaylist] = useState<PlaylistType[]>([]);
   const [editingVideoId, setEditingVideoId] = useState<string | null>(null);
+  const [addingDuplicate, setAddingDuplicate] = useState<boolean>(false);
   const [newTitle, setNewTitle] = useState<string>("");
   const [newAuthor, setNewAuthor] = useState<string>("");
   const [filter, setFilter] = useState<string>("");
@@ -138,6 +139,7 @@ const Popup = () => {
       localPlaylist: updatedPlaylist,
     });
     setEditingVideoId(null);
+    setAddingDuplicate(false);
   };
 
   const exportToCSV = () => {
@@ -150,6 +152,35 @@ const Popup = () => {
       saveAs: true,
     });
     URL.revokeObjectURL(url);
+  };
+
+  const addDuplicate = (videoId: string) => {
+    const dupVideo = playlist.find((item) => item.videoId === videoId);
+    const video = playlist.find((item) => item.videoId === editingVideoId);
+    if (dupVideo === undefined || video === undefined) return;
+    let firstWatched: number | undefined = Math.min(
+      video.firstWatched ?? Infinity,
+      dupVideo.firstWatched ?? Infinity
+    );
+    if (firstWatched === Infinity) firstWatched = undefined;
+    let lastWatched: number | undefined = Math.max(
+      video.lastWatched ?? 0,
+      dupVideo.lastWatched ?? 0
+    );
+    if (lastWatched === 0) lastWatched = undefined;
+    const updatedVideo: PlaylistType = {
+      ...video,
+      firstWatched,
+      lastWatched,
+      duplicates: [...new Set([...(video.duplicates ?? []), videoId])],
+    };
+    const updatedPlaylist = playlist
+      .filter((item) => item.videoId !== videoId)
+      .map((item) => (item.videoId === editingVideoId ? updatedVideo : item));
+    setPlaylist(updatedPlaylist);
+    chrome.storage.local.set({
+      localPlaylist: updatedPlaylist,
+    });
   };
 
   return (
@@ -255,12 +286,28 @@ const Popup = () => {
                           onChange={(e) => setNewAuthor(e.target.value)}
                           className="font-sm w-full border-black border"
                         />
-                        <button
-                          className="ml-auto bg-green-700 rounded-md p-2 text-white"
-                          onClick={() => saveChanges(item.videoId)}
-                        >
-                          Save
-                        </button>
+                        <div className="flex flex-row justify-between">
+                          <button
+                            className="bg-green-700 rounded-md p-2 text-white"
+                            onClick={() => saveChanges(item.videoId)}
+                          >
+                            Save
+                          </button>
+                          {!addingDuplicate && (
+                            <button
+                              className="bg-red-700 rounded-md p-2 text-white"
+                              onClick={() => removeVideo(item.videoId)}
+                            >
+                              Remove
+                            </button>
+                          )}
+                          <button
+                            className="bg-orange-600 rounded-md p-2 text-white"
+                            onClick={() => setAddingDuplicate(!addingDuplicate)}
+                          >
+                            {addingDuplicate ? "Cancel" : "Add Duplicate"}
+                          </button>
+                        </div>
                       </>
                     ) : (
                       <>
@@ -323,12 +370,17 @@ const Popup = () => {
                       </>
                     )}
                   </div>
-                  <button
-                    className="ml-auto bg-red-700 rounded-md p-2 text-white"
-                    onClick={() => removeVideo(item.videoId)}
-                  >
-                    Remove
-                  </button>
+                  {editingVideoId === item.videoId ? null : addingDuplicate ? (
+                    <button
+                      className="ml-auto bg-blue-700 rounded-md p-2 text-white"
+                      onClick={() => {
+                        addDuplicate(item.videoId);
+                        setAddingDuplicate(false);
+                      }}
+                    >
+                      Add
+                    </button>
+                  ) : null}
                 </Reorder.Item>
               );
             })}

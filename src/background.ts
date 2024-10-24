@@ -8,7 +8,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 function addToLocalPlaylist(videoId: string, title: string, author: string) {
   const now = Date.now();
   getLocalPlaylist((playlist) => {
-    const current = playlist.find((item) => item.videoId === videoId) ?? {
+    const current = playlist.find((item) => item.videoId === videoId || item.duplicates?.includes(videoId)) || {
       videoId,
       title,
       author,
@@ -19,7 +19,7 @@ function addToLocalPlaylist(videoId: string, title: string, author: string) {
     if (current.firstWatched === undefined) {
       current.firstWatched = now;
     }
-    const updated = playlist.filter((item) => item.videoId !== videoId);
+    const updated = playlist.filter((item) => item.videoId !== current.videoId);
     updated.push(current);
     chrome.storage.local.set({ localPlaylist: updated }, () => {
       console.log(
